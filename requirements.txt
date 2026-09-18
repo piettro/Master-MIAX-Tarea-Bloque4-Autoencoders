@@ -1,0 +1,13 @@
+# Python 3.11 - 3.13 (pandas 3 needs >=3.11; TensorFlow 2.21 has no 3.14 wheels).
+# Runtime
+tensorflow==2.21.0
+numpy==2.5.3
+pandas==3.0.6
+scikit-learn==1.9.1
+matplotlib==3.11.2
+requests==2.34.2
+pyarrow==25.0.1
+python-dotenv==1.2.3
+# Development / quality
+pytest==9.1.1
+flake8==7.3.0

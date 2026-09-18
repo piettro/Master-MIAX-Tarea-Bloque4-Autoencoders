@@ -1,0 +1,146 @@
+DEEP PORTFOLIOS WITH AUTOENCODERS
+Sparse index tracking of the S&P 500 Equal Weight with deep learning
+Master's in AI & Quantum Computing Applied to Financial Markets (MIAX 14)
+
+==================================================================
+=== ENGLISH ===
+==================================================================
+
+1. PROJECT DESCRIPTION
+
+I built a production-grade Python system that replicates the S&P 500 Equal Weight index (ETF RSP, about 500 stocks) with a portfolio of only 25 stocks chosen by a neural network rather than by hand. A denoising autoencoder compresses 7 years of daily returns for 342 stocks into an 8-dimensional embedding of each company. The portfolio is then built with spherical k-means clustering and medoid selection, and backtested with quarterly rebalancing against the real ETF. The final model reached a 4.63% out-of-sample tracking error on validation (2022–2023, a bear-market regime), beating the classical PCA benchmark (4.84%) with a network 6x smaller than the initial 1.4M-parameter design, which had failed to beat PCA. Beyond the model, I turned an exploratory notebook into a modular, fully tested, reproducible codebase (62 automated tests, byte-identical reruns, secure credential handling, documented architecture). I also added explainability analysis showing that the network discovered market sectors and a beta/volatility factor on its own. The project shows how I work: frame a business problem as a measurable metric, diagnose why a model fails, and deliver an auditable solution that others can run.
+
+2. PROJECT CHALLENGES
+
+- Replicate a ~500-stock index with only 25 stocks while minimising the annualised tracking error out of sample, in a market regime (2022 bear market) different from the training period.
+- Only ~342 samples (stocks) against ~1,762 features (trading days): an extreme setting where neural networks easily memorise instead of learning.
+- The initial model (400-dimensional ReLU latent space, 1.4M parameters) achieved a lower reconstruction error yet performed worse than a linear PCA baseline.
+- Avoid overfitting to the validation leaderboard: the test set was a hidden, random one-year window evaluated only once, irreversibly.
+- Prevent look-ahead bias and understand survivorship bias in a universe limited to stocks that stayed in the index for the whole period.
+- Keep the stock-selection procedure byte-compatible with a remote scoring server that re-executes it to verify every submission.
+- Turn an exploratory notebook with a hard-coded API token into maintainable, reproducible and secure software.
+- Explain a "black-box" latent space to non-technical stakeholders.
+
+3. HOW THE CHALLENGES WERE SOLVED
+
+- Index replication → Built an end-to-end pipeline: returns matrix → autoencoder embeddings → spherical k-means (cosine similarity) → one medoid per cluster weighted by cluster size → quarterly-rebalanced backtest mirroring RSP's methodology.
+- Few samples, many features → Replaced the oversized network with a compact denoising autoencoder (Gaussian input noise, one tanh hidden layer, 8-dimensional linear bottleneck), which forces the model to keep robust common factors and ignore day-to-day noise.
+- Lower reconstruction error but worse tracking → Treated the business metric (tracking error), not the training loss, as the objective. Documented the finding that the best-reconstructing latent space is not the most useful one.
+- Validation overfitting → Used validation strictly for model selection, compared against fixed baselines (PCA and sector-stratified random portfolios) and avoided brute-force tuning against the leaderboard.
+- Data leakage and survivorship bias → Fitted the normalisation (per-day cross-sectional z-score) on training data only, kept validation/test away from the network, and quantified the irreducible ~2.2% tracking-error floor of the universe.
+- Server compatibility → Isolated the selection contract in its own module with its logic unchanged, and locked its signature with a unit test.
+- Engineering quality → Refactored into a modular package (data, models, portfolio, evaluation, visualisation, submission), centralised configuration, logging, deterministic seeding (byte-identical reruns), a local Parquet cache, credentials moved to environment variables, 62 pytest tests, PEP 8 compliance and Mermaid architecture docs.
+- Explainability → Added t-SNE maps coloured by sector and latent-to-feature correlation heatmaps. Stocks clustered by sector without the sector being an input, and one latent dimension correlates 0.74 with market beta.
+
+4. TECH STACK
+
+- Python
+- TensorFlow / Keras
+- scikit-learn (PCA, K-Means, t-SNE, StandardScaler)
+- NumPy
+- Pandas
+- Matplotlib
+- PyArrow / Parquet
+- Requests (REST API client)
+- python-dotenv
+- Pytest
+- Flake8 (PEP 8)
+- Jupyter Notebook
+- Mermaid (architecture diagrams)
+- Git
+
+
+==================================================================
+=== ESPAÑOL ===
+==================================================================
+
+1. DESCRIPCIÓN DEL PROYECTO
+
+Desarrollé un sistema en Python de calidad profesional que replica el índice S&P 500 Equal Weight (ETF RSP, unas 500 acciones) con una cartera de solo 25 acciones, seleccionadas por una red neuronal y no a mano. Un autoencoder denoising comprime 7 años de rentabilidades diarias de 342 acciones en un embedding de 8 dimensiones por empresa. La cartera se construye después mediante clustering k-means esférico y selección de medoides, y se valida con un backtest con rebalanceo trimestral frente al ETF real. El modelo final alcanzó un tracking error fuera de muestra del 4,63% en validación (2022–2023, un régimen bajista), superando al benchmark clásico PCA (4,84%) con una red 6 veces más pequeña que el diseño inicial de 1,4 millones de parámetros, que no conseguía batir al PCA. Además del modelo, transformé un notebook exploratorio en un código modular, probado y reproducible (62 tests automatizados, ejecuciones idénticas byte a byte, gestión segura de credenciales y arquitectura documentada). También incorporé un análisis de explicabilidad que muestra que la red descubrió por sí sola los sectores de mercado y un factor de beta/volatilidad. El proyecto refleja mi forma de trabajar: convertir un problema de negocio en una métrica medible, diagnosticar por qué falla un modelo y entregar una solución auditable que otros pueden ejecutar.
+
+2. RETOS DEL PROYECTO
+
+- Replicar un índice de ~500 acciones con solo 25, minimizando el tracking error anualizado fuera de muestra, en un régimen de mercado (el bajista de 2022) distinto al del periodo de entrenamiento.
+- Solo ~342 muestras (acciones) frente a ~1.762 variables (días de cotización): un escenario extremo en el que las redes neuronales memorizan con facilidad en lugar de aprender.
+- El modelo inicial (espacio latente ReLU de 400 dimensiones, 1,4 millones de parámetros) obtenía menor error de reconstrucción pero rendía peor que un PCA lineal.
+- Evitar el sobreajuste al leaderboard de validación: el test era una ventana aleatoria y oculta de un año, evaluada una sola vez y de forma irreversible.
+- Prevenir el sesgo de anticipación (look-ahead) y comprender el sesgo de supervivencia de un universo limitado a acciones que permanecieron en el índice todo el periodo.
+- Mantener el procedimiento de selección compatible byte a byte con un servidor remoto que lo reejecuta para verificar cada envío.
+- Convertir un notebook exploratorio con un token de API en claro en software mantenible, reproducible y seguro.
+- Explicar un espacio latente de "caja negra" a perfiles no técnicos.
+
+3. CÓMO SE RESOLVIERON LOS RETOS
+
+- Réplica del índice → Pipeline de extremo a extremo: matriz de rentabilidades → embeddings del autoencoder → k-means esférico (similitud coseno) → un medoide por cluster ponderado por su tamaño → backtest con rebalanceo trimestral que replica la metodología de RSP.
+- Pocas muestras, muchas variables → Sustitución de la red sobredimensionada por un autoencoder denoising compacto (ruido gaussiano en la entrada, una capa oculta tanh y un cuello de botella lineal de 8 dimensiones), que obliga al modelo a quedarse con los factores comunes robustos e ignorar el ruido diario.
+- Menor error de reconstrucción pero peor seguimiento → El objetivo pasó a ser la métrica de negocio (tracking error) y no la pérdida de entrenamiento. Queda documentado que el latente que mejor reconstruye no es el más útil.
+- Sobreajuste a validación → La validación se usó exclusivamente para seleccionar modelos, comparando contra baselines fijos (PCA y carteras aleatorias estratificadas por sector) y evitando el ajuste por fuerza bruta contra el leaderboard.
+- Fuga de datos y sesgo de supervivencia → La normalización (z-score transversal por día) se ajustó solo con datos de entrenamiento, validación y test nunca pasaron por la red, y se cuantificó el suelo irreducible de ~2,2% de tracking error del universo.
+- Compatibilidad con el servidor → El contrato de selección se aisló en su propio módulo sin cambiar su lógica, y su firma quedó blindada con un test unitario.
+- Calidad de ingeniería → Refactorización en un paquete modular (datos, modelos, cartera, evaluación, visualización, envíos), configuración centralizada, logging, semillas deterministas (ejecuciones idénticas byte a byte), caché local en Parquet, credenciales en variables de entorno, 62 tests con pytest, cumplimiento de PEP 8 y documentación de arquitectura en Mermaid.
+- Explicabilidad → Mapas t-SNE coloreados por sector y heatmaps de correlación entre dimensiones latentes y características. Las acciones se agruparon por sector sin que el sector fuera una variable de entrada, y una dimensión latente correlaciona 0,74 con la beta de mercado.
+
+4. STACK TECNOLÓGICO
+
+- Python
+- TensorFlow / Keras
+- scikit-learn (PCA, K-Means, t-SNE, StandardScaler)
+- NumPy
+- Pandas
+- Matplotlib
+- PyArrow / Parquet
+- Requests (cliente de API REST)
+- python-dotenv
+- Pytest
+- Flake8 (PEP 8)
+- Jupyter Notebook
+- Mermaid (diagramas de arquitectura)
+- Git
+
+
+==================================================================
+=== PORTUGUÊS ===
+==================================================================
+
+1. DESCRIÇÃO DO PROJETO
+
+Desenvolvi um sistema em Python de nível profissional que replica o índice S&P 500 Equal Weight (ETF RSP, cerca de 500 ações) com uma carteira de apenas 25 ações, escolhidas por uma rede neural e não manualmente. Um autoencoder denoising comprime 7 anos de retornos diários de 342 ações em um embedding de 8 dimensões por empresa. A carteira é então construída com clustering k-means esférico e seleção de medoides, e validada com um backtest com rebalanceamento trimestral contra o ETF real. O modelo final atingiu um tracking error fora da amostra de 4,63% na validação (2022–2023, um regime de baixa), superando o benchmark clássico PCA (4,84%) com uma rede 6 vezes menor que o projeto inicial de 1,4 milhão de parâmetros, que não conseguia superar o PCA. Além do modelo, transformei um notebook exploratório em um código modular, testado e reprodutível (62 testes automatizados, execuções idênticas byte a byte, gestão segura de credenciais e arquitetura documentada). Também incluí uma análise de explicabilidade mostrando que a rede descobriu sozinha os setores de mercado e um fator de beta/volatilidade. O projeto mostra como trabalho: transformar um problema de negócio em uma métrica mensurável, diagnosticar por que um modelo falha e entregar uma solução auditável que outras pessoas conseguem executar.
+
+2. DESAFIOS DO PROJETO
+
+- Replicar um índice de ~500 ações com apenas 25, minimizando o tracking error anualizado fora da amostra, em um regime de mercado (a baixa de 2022) diferente do período de treino.
+- Apenas ~342 amostras (ações) contra ~1.762 variáveis (dias de negociação): um cenário extremo em que redes neurais memorizam facilmente em vez de aprender.
+- O modelo inicial (espaço latente ReLU de 400 dimensões, 1,4 milhão de parâmetros) tinha menor erro de reconstrução, mas desempenho pior que um PCA linear.
+- Evitar o overfitting ao leaderboard de validação: o teste era uma janela aleatória e oculta de um ano, avaliada uma única vez e de forma irreversível.
+- Prevenir o viés de antecipação (look-ahead) e compreender o viés de sobrevivência de um universo limitado a ações que permaneceram no índice durante todo o período.
+- Manter o procedimento de seleção compatível byte a byte com um servidor remoto que o reexecuta para verificar cada submissão.
+- Transformar um notebook exploratório com um token de API exposto em software sustentável, reprodutível e seguro.
+- Explicar um espaço latente de "caixa-preta" para públicos não técnicos.
+
+3. COMO OS DESAFIOS FORAM RESOLVIDOS
+
+- Réplica do índice → Pipeline de ponta a ponta: matriz de retornos → embeddings do autoencoder → k-means esférico (similaridade cosseno) → um medoide por cluster ponderado pelo seu tamanho → backtest com rebalanceamento trimestral replicando a metodologia do RSP.
+- Poucas amostras, muitas variáveis → Substituição da rede superdimensionada por um autoencoder denoising compacto (ruído gaussiano na entrada, uma camada oculta tanh e um gargalo linear de 8 dimensões), que força o modelo a manter os fatores comuns robustos e ignorar o ruído diário.
+- Menor erro de reconstrução, mas pior acompanhamento → O objetivo passou a ser a métrica de negócio (tracking error), e não a perda de treino. Ficou documentado que o espaço latente que melhor reconstrói não é o mais útil.
+- Overfitting à validação → A validação foi usada exclusivamente para seleção de modelos, com comparação contra baselines fixos (PCA e carteiras aleatórias estratificadas por setor) e sem ajuste por força bruta contra o leaderboard.
+- Vazamento de dados e viés de sobrevivência → A normalização (z-score transversal por dia) foi ajustada apenas com dados de treino, validação e teste nunca passaram pela rede, e foi quantificado o piso irredutível de ~2,2% de tracking error do universo.
+- Compatibilidade com o servidor → O contrato de seleção foi isolado em um módulo próprio sem alterar sua lógica, e sua assinatura foi protegida com um teste unitário.
+- Qualidade de engenharia → Refatoração em um pacote modular (dados, modelos, carteira, avaliação, visualização, submissão), configuração centralizada, logging, sementes determinísticas (execuções idênticas byte a byte), cache local em Parquet, credenciais em variáveis de ambiente, 62 testes com pytest, conformidade com PEP 8 e documentação de arquitetura em Mermaid.
+- Explicabilidade → Mapas t-SNE coloridos por setor e heatmaps de correlação entre dimensões latentes e características. As ações se agruparam por setor sem que o setor fosse uma variável de entrada, e uma dimensão latente tem correlação de 0,74 com o beta de mercado.
+
+4. STACK TECNOLÓGICO
+
+- Python
+- TensorFlow / Keras
+- scikit-learn (PCA, K-Means, t-SNE, StandardScaler)
+- NumPy
+- Pandas
+- Matplotlib
+- PyArrow / Parquet
+- Requests (cliente de API REST)
+- python-dotenv
+- Pytest
+- Flake8 (PEP 8)
+- Jupyter Notebook
+- Mermaid (diagramas de arquitetura)
+- Git
